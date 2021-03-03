@@ -35,7 +35,7 @@ $ python3 setup.py install
 #! /usr/bin/env python3
 
 import asyncio
-from aiocdp import Browser
+from aiocdp.browser import Browser
 
 async def request_will_be_sent(**kwargs):
     print(f"loading: {kwargs.get('request').get('url')}")
