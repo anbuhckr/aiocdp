@@ -20,13 +20,13 @@ Asynchronous Chrome DevTools Protocol Package for access lower level methods in 
 To install aiochrome, simply:
 
 ```
-$ pip install -U git+https://github.com/anbuhckr/aiocdp.git
+$ pip3 install -U git+https://github.com/anbuhckr/aiocdp.git
 ```
 
 or from source:
 
 ```
-$ python setup.py install
+$ python3 setup.py install
 ```
 
 ## Getting Started
