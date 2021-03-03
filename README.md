@@ -59,7 +59,7 @@ async def main():
         await browser.start() 
         await browser.send('Network.enable')
         await browser.send('Page.enable')
-        await browser.send('Page.navigate', url="https://github.com/anbuhckr/aiochrome")
+        await browser.send('Page.navigate', url="https://github.com/anbuhckr/aiocdp")
         
         # wait for loading
         await asyncio.sleep(10)
@@ -81,7 +81,7 @@ if __name__ == '__main__':
 ```
 
 more methods or events could be found in
-[Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/tot/)
+[Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/)
 
 
 ## Ref
