@@ -7,9 +7,6 @@ Asynchronous Chrome DevTools Protocol Package for access lower level methods in 
 
 * [Installation](#installation)
 * [Getting Started](#getting-started)
-* [Tab management](#tab-management)
-* [Debug](#debug)
-* [Examples](#examples)
 * [Ref](#ref)
 
 
