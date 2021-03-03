@@ -39,7 +39,7 @@ setup(
     zip_safe=False,
     keywords='aiocdp',
     classifiers=[
-        'Development Status :: 1 - Production/Stable',
+        'Development Status :: 2 - Production/Stable',
         'Intended Audience :: Developers',
         'License :: GNU GENERAL PUBLIC LICENSE',
         'Natural Language :: English',       
