@@ -16,12 +16,11 @@ with open('aiocdp/__init__.py', 'rb') as f:
         f.read().decode('utf-8')).group(1)))
 
 
-with open('requirements.txt', encoding='utf-8') as f:
-    all_reqs = f.read().split('\n')
-
-
-install_requires = [x.strip() for x in all_reqs if 'git+' not in x]
-dependency_links = [x.strip().replace('git+', '') for x in all_reqs if x.startswith('git+')]
+requirements = [    
+    'asyncio>=3.4.3',
+    'aiohttp>=3.3.2',
+    'websockets>=8.1',
+]
 
 
 setup(
