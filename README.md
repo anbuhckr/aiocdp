@@ -28,6 +28,7 @@ $ python setup.py install
 
 ``` python
 #! /usr/bin/env python3
+
 import asyncio
 from aiocdp import Browser
 
