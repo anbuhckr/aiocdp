@@ -107,7 +107,7 @@ class Browser:
         self.started = True
         self.connected = False        
         self._websocket_url = await self.ws_endpoint()        
-        self._ws = await websockets.connect(self._websocket_url, loop=self.loop)
+        self._ws = await websockets.connect(self._websocket_url, loop=self.loop, ping_interval=None)
         if self._ws.open:
             self.connected = True
             self._recv_task = asyncio.ensure_future(self._recv_loop(), loop=self.loop)
