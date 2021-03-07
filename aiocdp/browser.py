@@ -71,7 +71,7 @@ class Browser:
                 warnings.warn(f"unknown message: {message}")
 
     async def _handle_event_loop(self):
-        while True:
+        while not self.stopped:
             event = await self.event_queue.get()
             if event['method'] in self.event_handlers:
                 try:
