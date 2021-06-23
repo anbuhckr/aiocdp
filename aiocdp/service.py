@@ -3,8 +3,7 @@
 import errno
 import os
 import platform
-from subprocess import Popen, PIPE
-import time
+import asyncio
 import socket
 from tempfile import TemporaryDirectory
 
@@ -65,11 +64,17 @@ class Service(object):
         free_socket.close()
         return port
 
-    def start(self):
+    async def start(self):
         try:
             cmd = [self.path]
             cmd.extend(self.service_args)
-            self.process = Popen(cmd, env=self.env, close_fds=platform.system() != 'Windows', stdout=PIPE, stderr=PIPE, stdin=PIPE)
+            self.process = await asyncio.create_subprocess_shell(
+                cmd,
+                env=self.env,
+                close_fds=platform.system() != 'Windows',
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                stdin=asyncio.subprocess.PIPE)
         except TypeError:
             raise
         except OSError as err:
@@ -83,71 +88,73 @@ class Service(object):
             raise ChromeException(f"The executable {os.path.basename(self.path)} needs to be available in the path. {self.start_error_message}\n{e}")
         count = 0
         while True:
-            self.assert_process_still_running()
-            if self.is_connectable():
+            await self.assert_process_still_running()
+            if await self.is_connectable():
                 break
             count += 1
-            time.sleep(1)
+            await asyncio.sleep(1)
             if count == 30:
                 raise ChromeException("Can not connect to the Service %s" % self.path)
 
-    def assert_process_still_running(self):
-        return_code = self.process.poll()
-        if return_code is not None:
-            outs, errs = self.process.communicate(timeout=15)
+    async def assert_process_still_running(self):        
+        if self.process.returncode is not None:
+            outs, errs = await asyncio.wait_for(self.process.communicate(), timeout=15.0)
             print("\nChrome STDOUT:\n" + outs.encode() + "\n\n")
             print("\nChrome STDERR:\n" + errs.encode() + "\n\n")
             raise ChromeException(f'Service {self.path} unexpectedly exited. Status code was: {return_code}')
 
-    def is_connectable(self):
+    async def is_connectable(self):
         socket_ = None
         try:
-            socket_ = socket.create_connection(('localhost', self.port), 1)
+            reader, socket_ = await asyncio.open_connection('localhost', self.port)
             result = True
-        except socket.error:
+        except Exception:
             result = False
         finally:
             if socket_:
                 socket_.close()
         return result
 
-    def send_remote_shutdown_command(self):
-        try:
-            from urllib import request as url_request
-            URLError = url_request.URLError
-        except ImportError:
-            import urllib2 as url_request
-            import urllib2
-            URLError = urllib2.URLError
-        try:
-            url_request.urlopen(f"{self.url}/shutdown")
-        except URLError:
+    async def send_remote_shutdown_command(self):
+        socket_ = None
+        try:            
+            reader, socket_ = await asyncio.open_connection('localhost', self.port)
+            query = (
+                f"GET /shutdown HTTP/1.0\r\n"
+                f"Host: localhost\r\n"
+                f"\r\n"
+            )
+            socket_.write(query.encode())           
+        except Exception:
             return
+        finally:
+            if socket_:
+                socket_.close()
         for x in range(30):
-            if not self.is_connectable():
+            if not await self.is_connectable():
                 break
             else:
-                time.sleep(1)
+                await asyncio.sleep(1)
 
-    def stop(self):        
+    async def stop(self):        
         if self.process is None:
             return
         try:
-            self.send_remote_shutdown_command()
+            await self.send_remote_shutdown_command()
         except TypeError:
             pass
         try:
             if self.process:
-                for stream in [self.process.stdin, self.process.stdout, self.process.stderr]:
+                async for stream in [self.process.stdin, self.process.stdout, self.process.stderr]:
                     try:
-                        stream.close()
+                        await stream.close()
                     except AttributeError:
                         pass
-                self.process.terminate()
-                self.process.wait()
-                self.process.kill()
+                await self.process.terminate()
+                await self.process.wait()
+                await self.process.kill()
                 self.process = None
-                time.sleep(0.5)
+                await asyncio.sleep(0.5)
                 try:
                     self.tmpdir.cleanup()
                 except Exception:
