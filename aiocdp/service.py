@@ -34,7 +34,7 @@ DEFAULT_ARGS = [
 ]
 
 class Service(object):
-    def __init__(self, opts=[]):
+    def __init__(self, loop=None, opts=[]):
         self.path = 'google-chrome'
         if 'nt' in os.name:
             self.path = self.find()           
@@ -48,7 +48,8 @@ class Service(object):
         self.url = f"http://localhost:{self.port}"
         start_error_message = ""
         self.process = None
-        self.start()        
+        self.loop = loop or asyncio.get_event_loop().set_exception_handler(lambda loop, context: None)
+        asyncio.run(self.start())
 
     def find(self):        
         name = 'chrome.exe'
@@ -74,7 +75,8 @@ class Service(object):
                 close_fds=platform.system() != 'Windows',
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                stdin=asyncio.subprocess.PIPE)
+                stdin=asyncio.subprocess.PIPE,
+                loop=self.loop)
         except TypeError:
             raise
         except OSError as err:
@@ -98,15 +100,15 @@ class Service(object):
 
     async def assert_process_still_running(self):        
         if self.process.returncode is not None:
-            outs, errs = await asyncio.wait_for(self.process.communicate(), timeout=15.0)
+            outs, errs = await asyncio.wait_for(self.process.communicate(), timeout=15.0, loop=self.loop)
             print("\nChrome STDOUT:\n" + outs.encode() + "\n\n")
             print("\nChrome STDERR:\n" + errs.encode() + "\n\n")
-            raise ChromeException(f'Service {self.path} unexpectedly exited. Status code was: {return_code}')
+            raise ChromeException(f'Service {self.path} unexpectedly exited. Status code was: {self.process.returncode}')
 
     async def is_connectable(self):
         socket_ = None
         try:
-            reader, socket_ = await asyncio.open_connection('localhost', self.port)
+            reader, socket_ = await asyncio.open_connection('localhost', self.port, loop=self.loop)
             result = True
         except Exception:
             result = False
@@ -118,7 +120,7 @@ class Service(object):
     async def send_remote_shutdown_command(self):
         socket_ = None
         try:            
-            reader, socket_ = await asyncio.open_connection('localhost', self.port)
+            reader, socket_ = await asyncio.open_connection('localhost', self.port, loop=self.loop)
             query = (
                 f"GET /shutdown HTTP/1.0\r\n"
                 f"Host: localhost\r\n"
