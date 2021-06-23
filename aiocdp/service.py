@@ -5,6 +5,7 @@ import os
 import platform
 import asyncio
 import socket
+from subprocess import Popen, PIPE
 from tempfile import TemporaryDirectory
 
 DEFAULT_ARGS = [
@@ -37,7 +38,7 @@ class Service(object):
     def __init__(self, loop=None, opts=[]):
         self.path = 'google-chrome'
         if 'nt' in os.name:
-            self.path = self.find()           
+            self.path = self.find()     
         self.tmpdir = TemporaryDirectory()              
         self.port = self.free_port()
         self.service_args = DEFAULT_ARGS
@@ -46,11 +47,10 @@ class Service(object):
         self.service_args += [f'--remote-debugging-port={self.port}']
         self.env = os.environ
         self.url = f"http://localhost:{self.port}"
-        start_error_message = ""
+        self.start_error_message = ""
         self.process = None
         self.loop = loop or asyncio.get_event_loop().set_exception_handler(lambda loop, context: None)
-        asyncio.run(self.start())
-
+        
     def find(self):        
         name = 'chrome.exe'
         for root, dirs, files in os.walk('C:/'):
@@ -69,14 +69,7 @@ class Service(object):
         try:
             cmd = [self.path]
             cmd.extend(self.service_args)
-            self.process = await asyncio.create_subprocess_shell(
-                cmd,
-                env=self.env,
-                close_fds=platform.system() != 'Windows',
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                stdin=asyncio.subprocess.PIPE,
-                loop=self.loop)
+            self.process = Popen(cmd, env=self.env, close_fds=platform.system() != 'Windows', stdout=PIPE, stderr=PIPE, stdin=PIPE)
         except TypeError:
             raise
         except OSError as err:
@@ -90,73 +83,49 @@ class Service(object):
             raise ChromeException(f"The executable {os.path.basename(self.path)} needs to be available in the path. {self.start_error_message}\n{e}")
         count = 0
         while True:
-            await self.assert_process_still_running()
-            if await self.is_connectable():
+            self.assert_process_still_running()
+            if self.is_connectable():
                 break
             count += 1
             await asyncio.sleep(1)
             if count == 30:
                 raise ChromeException("Can not connect to the Service %s" % self.path)
 
-    async def assert_process_still_running(self):        
-        if self.process.returncode is not None:
-            outs, errs = await asyncio.wait_for(self.process.communicate(), timeout=15.0, loop=self.loop)
+    def assert_process_still_running(self):
+        return_code = self.process.poll()
+        if return_code is not None:
+            outs, errs = self.process.communicate(timeout=15)
             print("\nChrome STDOUT:\n" + outs.encode() + "\n\n")
             print("\nChrome STDERR:\n" + errs.encode() + "\n\n")
-            raise ChromeException(f'Service {self.path} unexpectedly exited. Status code was: {self.process.returncode}')
+            raise ChromeException(f'Service {self.path} unexpectedly exited. Status code was: {return_code}')
 
-    async def is_connectable(self):
+    def is_connectable(self):
         socket_ = None
         try:
-            reader, socket_ = await asyncio.open_connection('localhost', self.port, loop=self.loop)
+            socket_ = socket.create_connection(('localhost', self.port), 1)
             result = True
-        except Exception:
+        except socket.error:
             result = False
         finally:
             if socket_:
                 socket_.close()
         return result
 
-    async def send_remote_shutdown_command(self):
-        socket_ = None
-        try:            
-            reader, socket_ = await asyncio.open_connection('localhost', self.port, loop=self.loop)
-            query = (
-                f"GET /shutdown HTTP/1.0\r\n"
-                f"Host: localhost\r\n"
-                f"\r\n"
-            )
-            socket_.write(query.encode())           
-        except Exception:
-            return
-        finally:
-            if socket_:
-                socket_.close()
-        for x in range(30):
-            if not await self.is_connectable():
-                break
-            else:
-                await asyncio.sleep(1)
-
     async def stop(self):        
         if self.process is None:
             return
         try:
-            await self.send_remote_shutdown_command()
-        except TypeError:
-            pass
-        try:
             if self.process:
-                async for stream in [self.process.stdin, self.process.stdout, self.process.stderr]:
+                for stream in [self.process.stdin, self.process.stdout, self.process.stderr]:
                     try:
-                        await stream.close()
+                        stream.close()
                     except AttributeError:
                         pass
-                await self.process.terminate()
-                await self.process.wait()
-                await self.process.kill()
+                self.process.terminate()
+                self.process.wait()
+                self.process.kill()
                 self.process = None
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.5)                
                 try:
                     self.tmpdir.cleanup()
                 except Exception:
@@ -167,14 +136,8 @@ class Service(object):
     async def __aenter__(self):
         return self
     
-    async def __exit__(self, *args):
-        await self.__del__()    
-        
-    async def __del__(self):
-        try:
-            await self.stop()
-        except Exception:
-            pass
+    async def __aexit__(self, *args):
+        await self.stop()
 
 class ChromeException(Exception):
     def __init__(self, msg=None, screen=None, stacktrace=None):
@@ -190,4 +153,3 @@ class ChromeException(Exception):
             stacktrace = "\n".join(self.stacktrace)
             exception_msg += f"Stacktrace:\n{stacktrace}"
         return exception_msg
-
