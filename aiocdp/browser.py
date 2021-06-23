@@ -127,7 +127,7 @@ class Browser:
             self._recv_task.cancel()
             self._handle_event_task.cancel()
             self.connected = False
-        self.service.stop()        
+        await self.service.stop()        
         return
 
     def __str__(self):
