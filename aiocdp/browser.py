@@ -32,8 +32,8 @@ class Browser:
             self.tab_id = data.get('id')
             return data.get('webSocketDebuggerUrl')
 
-    async def close_tab(self):
-        async with self.session.get(f"{self.dev_url}/json/close/{self.tab_id}") as rp:
+    async def close_browser(self):
+        async with self.session.get(f"{self.dev_url}/shutdown") as rp:
             await rp.text()
             return
 
@@ -106,13 +106,13 @@ class Browser:
         self.stopped = False
         self.started = True
         self.connected = False        
+        await self.service.start()        
         self._websocket_url = await self.ws_endpoint()        
         self._ws = await websockets.connect(self._websocket_url, loop=self.loop, ping_interval=None)
         if self._ws.open:
             self.connected = True
             self._recv_task = asyncio.ensure_future(self._recv_loop(), loop=self.loop)
             self._handle_event_task = asyncio.ensure_future(self._handle_event_loop(), loop=self.loop)
-        return
 
     async def stop(self):
         if self.stopped:
@@ -123,12 +123,11 @@ class Browser:
         self.stopped = True
         if self.connected and self._ws.open:            
             await self._ws.close()
-            await self.close_tab()
+            await self.close_browser()
             self._recv_task.cancel()
             self._handle_event_task.cancel()
             self.connected = False
         await self.service.stop()        
-        return
 
     def __str__(self):
         return f'<Browser {self.dev_url}>' 
