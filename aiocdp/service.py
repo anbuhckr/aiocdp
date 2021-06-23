@@ -162,15 +162,15 @@ class Service(object):
         except OSError:
             pass
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
     
-    def __exit__(self, *args):
-        self.__del__()    
+    async def __exit__(self, *args):
+        await self.__del__()    
         
-    def __del__(self):
+    async def __del__(self):
         try:
-            self.stop()
+            await self.stop()
         except Exception:
             pass
 
