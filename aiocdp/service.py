@@ -107,7 +107,7 @@ class Service(object):
         try:            
             reader, socket_ = await asyncio.open_connection('localhost', self.port)
             result = True
-        except Exception as e:            
+        except Exception:            
             result = False
         finally:
             if socket_:
