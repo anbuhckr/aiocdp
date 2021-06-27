@@ -4,7 +4,7 @@
 [![GitHub forks](https://img.shields.io/github/forks/anbuhckr/aiocdp)](https://github.com/anbuhckr/aiocdp/network)
 [![GitHub stars](https://img.shields.io/github/stars/anbuhckr/aiocdp)](https://github.com/anbuhckr/aiocdp/stargazers)
 [![GitHub license](https://img.shields.io/github/license/anbuhckr/aiocdp)](https://github.com/anbuhckr/aiocdp/blob/main/LICENSE)
-![PyPI - Python Version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8-blue)
+![PyPI - Python Version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue)
 
 Asynchronous Chrome DevTools Protocol Package for access lower level methods in Chrome.
 
