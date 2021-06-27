@@ -73,11 +73,7 @@ async def main():
     await browser.stop()
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(main())
-    finally:
-        loop.close()        
+    asyncio.run(main())      
 ```
 
 more methods or events could be found in
