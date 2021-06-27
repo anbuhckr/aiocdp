@@ -14,7 +14,7 @@ class Browser:
 
     def __init__(self, loop=None, opts=[]):
         self.service = Service(opts)            
-        self.dev_url = self.service.url
+        self.dev_url = None
         self.tab_id = None
         self._cur_id = 1000
         self.started = False
@@ -106,7 +106,8 @@ class Browser:
         self.stopped = False
         self.started = True
         self.connected = False        
-        await self.service.start()        
+        await self.service.start()
+        self.dev_url = self.service.url
         self._websocket_url = await self.ws_endpoint()        
         self._ws = await websockets.connect(self._websocket_url, loop=self.loop, ping_interval=None)
         if self._ws.open:
