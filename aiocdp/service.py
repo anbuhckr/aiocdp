@@ -65,8 +65,10 @@ class Service(object):
 
     async def start(self):
         self.path = 'google-chrome'
-        if 'nt' in os.name:
+        if platform.system() == 'Windows':
             self.path = await self.loop.run_in_executor(None, self.find)
+        elif platform.system() == 'Darwin':
+            self.path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
         self.port = await self.loop.run_in_executor(None, self.free_port)
         self.service_args += [f'--remote-debugging-port={self.port}']
         self.url = f"http://localhost:{self.port}"
