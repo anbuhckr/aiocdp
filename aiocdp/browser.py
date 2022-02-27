@@ -5,8 +5,15 @@ import aiohttp
 import json
 import warnings
 import websockets
+import os
 
 from .service import Service
+
+if 'nt' in os.name:
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+else:
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 __all__ = ["Browser"]
 
