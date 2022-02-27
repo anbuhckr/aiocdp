@@ -47,7 +47,7 @@ class Service(object):
         self.process = None
         if 'nt' in os.name:
             asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-        self.loop = asyncio.get_event_loop()
+        self.loop = asyncio.get_running_loop()
         
     def find(self):        
         name = 'chrome.exe'
