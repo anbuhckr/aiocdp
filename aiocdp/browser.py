@@ -13,7 +13,7 @@ __all__ = ["Browser"]
 class Browser:
 
     def __init__(self, opts=[]):
-        self.service = Service(opts)            
+        self.service = Service(opts)
         self.dev_url = None
         self.tab_id = None
         self._cur_id = 1000
@@ -22,7 +22,7 @@ class Browser:
         self.connected = False
         self.event_handlers = {}
         self.method_results = {}
-        self.event_queue = asyncio.Queue()        
+        self.event_queue = asyncio.Queue()
         self.loop = asyncio.get_running_loop()
         self.session = aiohttp.ClientSession(loop=self.loop)
 
@@ -102,13 +102,13 @@ class Browser:
 
     async def start(self):
         if self.started:
-            return        
+            return
         self.stopped = False
         self.started = True
-        self.connected = False        
+        self.connected = False
         await self.service.start()
         self.dev_url = self.service.url
-        self._websocket_url = await self.ws_endpoint()        
+        self._websocket_url = await self.ws_endpoint()
         self._ws = await websockets.connect(self._websocket_url, loop=self.loop, ping_interval=None)
         if self._ws.open:
             self.connected = True
@@ -122,21 +122,22 @@ class Browser:
             raise Exception("Browser is not running")
         self.started = False
         self.stopped = True
-        if self.connected and self._ws.open:            
+        if self.connected and self._ws.open:
             await self._ws.close()
             await self.close_browser()
             self._recv_task.cancel()
             self._handle_event_task.cancel()
             self.connected = False
-        await self.service.stop()        
+        await self.service.stop()
+        await self.session.close()
 
     def __str__(self):
-        return f'<Browser {self.dev_url}>' 
+        return f'<Browser {self.dev_url}>'
 
-    __repr__ = __str__    
+    __repr__ = __str__
 
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, *excinfo):
-        await self.session.close()              
+    async def __aexit__(self):
+        await self.stop()
