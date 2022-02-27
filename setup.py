@@ -20,6 +20,7 @@ requirements = [
     'asyncio>=3.4.3',
     'aiohttp>=3.3.2',
     'websockets>=8.1',
+    'uvloop>=0.16.0,
 ]
 
 
