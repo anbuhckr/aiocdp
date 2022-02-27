@@ -22,7 +22,7 @@ requirements = [
     'websockets>=8.1',    
 ]
 if 'nt' not in os.name:
-    requirements + = ['uvloop>=0.16.0']
+    requirements += ['uvloop>=0.16.0']
 
 
 setup(
