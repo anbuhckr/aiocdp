@@ -2,6 +2,7 @@
 
 import re
 import ast
+import os
 from setuptools import setup, find_packages
 
 with open('README.md') as readme_file:
@@ -18,9 +19,10 @@ with open('aiocdp/__init__.py', 'rb') as f:
 
 requirements = [
     'aiohttp>=3.3.2',
-    'websockets>=8.1',
-    'uvloop>=0.16.0',
+    'websockets>=8.1',    
 ]
+if 'nt' not in os.name:
+    requirements + = ['uvloop>=0.16.0']
 
 
 setup(
