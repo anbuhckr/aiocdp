@@ -16,8 +16,7 @@ with open('aiocdp/__init__.py', 'rb') as f:
         f.read().decode('utf-8')).group(1)))
 
 
-requirements = [    
-    'asyncio>=3.4.3',
+requirements = [
     'aiohttp>=3.3.2',
     'websockets>=8.1',
     'uvloop>=0.16.0',
