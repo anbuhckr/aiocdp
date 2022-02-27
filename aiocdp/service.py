@@ -7,6 +7,12 @@ import asyncio
 import socket
 from tempfile import TemporaryDirectory
 
+if 'nt' in os.name:
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+else:
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
 DEFAULT_ARGS = [
     'about:blank',
     '--disable-background-networking',
@@ -26,7 +32,7 @@ DEFAULT_ARGS = [
     '--disable-translate',
     '--metrics-recording-only',
     '--no-first-run',
-    '--safebrowsing-disable-auto-update',    
+    '--safebrowsing-disable-auto-update',
     '--password-store=basic',
     '--use-mock-keychain',
     '--ignore-ssl-errors',
@@ -36,20 +42,16 @@ DEFAULT_ARGS = [
 class Service(object):
     def __init__(self, opts=[]):
         self.tmpdir = TemporaryDirectory()
-        self.path = None                    
+        self.path = None
         self.port = None
         self.service_args = DEFAULT_ARGS
-        self.service_args += opts      
-        self.service_args += [f'--user-data-dir={self.tmpdir.name}']        
-        self.env = os.environ
+        self.service_args += opts
+        self.service_args += [f'--user-data-dir={self.tmpdir.name}']
         self.url = None
-        self.start_error_message = ""
         self.process = None
-        if 'nt' in os.name:
-            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
         self.loop = asyncio.get_running_loop()
         
-    def find(self):        
+    def find(self):
         name = 'chrome.exe'
         for root, dirs, files in os.walk('C:/'):
             if name in files:
@@ -75,18 +77,24 @@ class Service(object):
         try:
             cmd = [self.path]
             cmd.extend(self.service_args)
-            self.process = await asyncio.create_subprocess_exec(*cmd, env=self.env, close_fds=platform.system() != 'Windows', stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, stdin=asyncio.subprocess.PIPE)
+            self.process = await asyncio.create_subprocess_exec(
+                *cmd,
+                close_fds=platform.system() != 'Windows',
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                stdin=asyncio.subprocess.PIPE
+            )
         except TypeError:
             raise
         except OSError as err:
             if err.errno == errno.ENOENT:
-                raise ChromeException(f"'{os.path.basename(self.path)}' executable needs to be in PATH. {self.start_error_message}")
+                raise ChromeException(f"'{os.path.basename(self.path)}' executable needs to be in PATH.")
             elif err.errno == errno.EACCES:
-                raise ChromeException(f"'{os.path.basename(self.path)}' executable may have wrong permissions. {self.start_error_message}")
+                raise ChromeException(f"'{os.path.basename(self.path)}' executable may have wrong permissions.")
             else:
                 raise
         except Exception as e:
-            raise ChromeException(f"The executable {os.path.basename(self.path)} needs to be available in the path. {self.start_error_message}\n{e}")
+            raise ChromeException(f"The executable {os.path.basename(self.path)} needs to be available in the path.\n{e}")
         count = 0
         while True:
             await self.assert_process_still_running()
@@ -97,7 +105,7 @@ class Service(object):
             if count == 30:
                 raise ChromeException("Can not connect to the Service %s" % self.path)
 
-    async def assert_process_still_running(self):        
+    async def assert_process_still_running(self):
         if self.process.returncode is not None:
             outs, errs = await self.process.communicate()
             print("\nChrome STDOUT:\n" + outs.encode() + "\n\n")
@@ -105,29 +113,29 @@ class Service(object):
             raise ChromeException(f'Service {self.path} unexpectedly exited. Status code was: {self.process.returncode}')
 
     async def is_connectable(self):
-        socket_ = None        
-        try:            
+        socket_ = None
+        try:
             reader, socket_ = await asyncio.open_connection('localhost', self.port)
             result = True
-        except Exception:            
+        except Exception:
             result = False
         finally:
             if socket_:
                 socket_.close()
         return result
 
-    async def stop(self):        
+    async def stop(self):
         if self.process is None:
             return
         try:
-            if self.process:                
+            if self.process:
                 self.process.terminate()
                 await self.process.wait()
                 self.process.kill()
                 self.process = None
-                await asyncio.sleep(0.5)                
+                await asyncio.sleep(0.5)
                 try:
-                    await self.loop.run_in_executor(None, self.tmpdir.cleanup)                   
+                    await self.loop.run_in_executor(None, self.tmpdir.cleanup)
                 except Exception:
                     pass
         except OSError:
@@ -136,7 +144,7 @@ class Service(object):
     async def __aenter__(self):
         return self
     
-    async def __aexit__(self, *args):
+    async def __aexit__(self):
         await self.stop()
 
 class ChromeException(Exception):
@@ -146,7 +154,7 @@ class ChromeException(Exception):
         self.stacktrace = stacktrace
 
     def __str__(self):
-        exception_msg = f"Message: {self.msg}\n" 
+        exception_msg = f"Message: {self.msg}\n"
         if self.screen is not None:
             exception_msg += "Screenshot: available via screen\n"
         if self.stacktrace is not None:
