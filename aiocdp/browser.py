@@ -12,7 +12,7 @@ __all__ = ["Browser"]
 
 class Browser:
 
-    def __init__(self, loop=None, opts=[]):
+    def __init__(self, opts=[]):
         self.service = Service(opts)            
         self.dev_url = None
         self.tab_id = None
@@ -23,7 +23,7 @@ class Browser:
         self.event_handlers = {}
         self.method_results = {}
         self.event_queue = asyncio.Queue()        
-        self.loop = loop or asyncio.get_event_loop().set_exception_handler(lambda loop, context: None)        
+        self.loop = asyncio.get_running_loop()
         self.session = aiohttp.ClientSession(loop=self.loop)
 
     async def ws_endpoint(self):
