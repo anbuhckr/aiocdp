@@ -134,11 +134,11 @@ class Service(object):
                 self.process.kill()
                 self.process = None
                 await asyncio.sleep(0.5)
-                try:
-                    await self.loop.run_in_executor(None, self.tmpdir.cleanup)
-                except Exception:
-                    pass
         except OSError:
+            pass
+        try:
+            await self.loop.run_in_executor(None, self.tmpdir.cleanup)
+        except:
             pass
 
     async def __aenter__(self):
