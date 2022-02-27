@@ -6,7 +6,6 @@ import json
 import warnings
 import websockets
 import os
-
 from .service import Service
 
 if 'nt' in os.name:
