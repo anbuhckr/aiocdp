@@ -136,17 +136,20 @@ class Browser:
         self.started = False
         self.stopped = True
         try:
+            for _ in range(self.event_queue.qsize()):
+                self.event_queue.get_nowait()
+                self.event_queue.task_done()
             if self.connected and self._ws.open:
                 self.connected = False
                 await self._ws.close()
                 await self.close_browser()
-                self._recv_task.cancel()
-                self._handle_event_task.cancel()
+                try:
+                    self._recv_task.cancel()
+                    self._handle_event_task.cancel()
+                except:
+                    pass
             await self.service.stop()
-            await self.session.close()
-            for _ in range(self.event_queue.qsize()):
-                self.event_queue.get_nowait()
-                self.event_queue.task_done()
+            await self.session.close()            
         except:
             pass
 
