@@ -5,4 +5,4 @@ from __future__ import unicode_literals
 from .browser import Browser
 from .service import Service
 
-__version__ = '1.4.0'
+__version__ = '2.0.0'
