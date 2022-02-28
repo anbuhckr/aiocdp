@@ -123,6 +123,9 @@ class Browser:
             raise Exception("Browser is not running")
         self.started = False
         self.stopped = True
+        for _ in range(self.event_queue.qsize()):
+            self.event_queue.get_nowait()
+            self.event_queue.task_done()
         if self.connected and self._ws.open:
             await self._ws.close()
             self._recv_task.cancel()
