@@ -144,6 +144,9 @@ class Browser:
                 self._handle_event_task.cancel()
             await self.service.stop()
             await self.session.close()
+            for _ in range(self.event_queue.qsize()):
+                self.event_queue.get_nowait()
+                self.event_queue.task_done()
         except:
             pass
 
