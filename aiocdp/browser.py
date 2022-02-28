@@ -68,6 +68,7 @@ class Browser:
                 message = json.loads(message_json)
             except asyncio.CancelledError:
                 self._recv_task.cancel()
+                break
             except:
                 continue
             if "method" in message:
@@ -88,7 +89,8 @@ class Browser:
                     except Exception as e:
                         print(f"callback {event['method']} exception")
             except asyncio.CancelledError:
-                self._handle_event_task.cancel()                
+                self._handle_event_task.cancel()
+                break
 
     async def send(self, _method, *args, **kwargs):
         if not self.started:
@@ -135,9 +137,11 @@ class Browser:
         self.stopped = True
         try:
             if self.connected and self._ws.open:
+                self.connected = False
                 await self._ws.close()
                 await self.close_browser()
-                self.connected = False
+                self._recv_task.cancel()
+                self._handle_event_task.cancel()
             await self.service.stop()
             await self.session.close()
         except:
