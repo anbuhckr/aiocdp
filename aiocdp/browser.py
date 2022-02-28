@@ -66,6 +66,8 @@ class Browser:
             try:
                 message_json = await self._ws.recv()
                 message = json.loads(message_json)
+            except asyncio.CancelledError:
+                self._recv_task.cancel()
             except:
                 continue
             if "method" in message:
@@ -78,12 +80,15 @@ class Browser:
 
     async def _handle_event_loop(self):
         while not self.stopped:
-            event = await self.event_queue.get()
-            if event['method'] in self.event_handlers:
-                try:
-                    await self.event_handlers[event['method']](**event['params'])
-                except Exception as e:
-                    print(f"callback {event['method']} exception")
+            try:
+                event = await self.event_queue.get()
+                if event['method'] in self.event_handlers:
+                    try:
+                        await self.event_handlers[event['method']](**event['params'])
+                    except Exception as e:
+                        print(f"callback {event['method']} exception")
+            except asyncio.CancelledError:
+                self._handle_event_task.cancel()                
 
     async def send(self, _method, *args, **kwargs):
         if not self.started:
@@ -128,14 +133,15 @@ class Browser:
             raise Exception("Browser is not running")
         self.started = False
         self.stopped = True
-        if self.connected and self._ws.open:
-            await self._ws.close()
-            await self.close_browser()
-            self._recv_task.cancel()
-            self._handle_event_task.cancel()
-            self.connected = False
-        await self.service.stop()
-        await self.session.close()
+        try:
+            if self.connected and self._ws.open:
+                await self._ws.close()
+                await self.close_browser()
+                self.connected = False
+            await self.service.stop()
+            await self.session.close()
+        except:
+            pass
 
     def __str__(self):
         return f'<Browser {self.dev_url}>'
