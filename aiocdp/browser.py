@@ -67,6 +67,8 @@ class Browser:
                 message_json = await self._ws.recv()
                 message = json.loads(message_json)
             except asyncio.CancelledError:
+                self.event_queue.get_nowait()
+                self.event_queue.task_done()
                 self._recv_task.cancel()
                 break
             except:
@@ -89,6 +91,8 @@ class Browser:
                     except Exception as e:
                         print(f"callback {event['method']} exception")
             except asyncio.CancelledError:
+                self.event_queue.get_nowait()
+                self.event_queue.task_done()
                 self._handle_event_task.cancel()
                 break
 
