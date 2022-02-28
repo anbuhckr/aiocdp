@@ -38,11 +38,6 @@ class Browser:
             self.tab_id = data.get('id')
             return data.get('webSocketDebuggerUrl')
 
-    async def close_browser(self):
-        async with self.session.get(f"{self.dev_url}/shutdown") as rp:
-            await rp.text()
-            return
-
     async def ws_send(self, message):
         if 'id' not in message:
             self._cur_id += 1
@@ -66,11 +61,6 @@ class Browser:
             try:
                 message_json = await self._ws.recv()
                 message = json.loads(message_json)
-            except asyncio.CancelledError:
-                self.event_queue.get_nowait()
-                self.event_queue.task_done()
-                self._recv_task.cancel()
-                break
             except:
                 continue
             if "method" in message:
@@ -83,18 +73,12 @@ class Browser:
 
     async def _handle_event_loop(self):
         while not self.stopped:
-            try:
-                event = await self.event_queue.get()
-                if event['method'] in self.event_handlers:
-                    try:
-                        await self.event_handlers[event['method']](**event['params'])
-                    except Exception as e:
-                        print(f"callback {event['method']} exception")
-            except asyncio.CancelledError:
-                self.event_queue.get_nowait()
-                self.event_queue.task_done()
-                self._handle_event_task.cancel()
-                break
+            event = await self.event_queue.get()
+            if event['method'] in self.event_handlers:
+                try:
+                    await self.event_handlers[event['method']](**event['params'])
+                except Exception as e:
+                    print(f"callback {event['method']} exception")
 
     async def send(self, _method, *args, **kwargs):
         if not self.started:
@@ -139,23 +123,13 @@ class Browser:
             raise Exception("Browser is not running")
         self.started = False
         self.stopped = True
-        try:
-            for _ in range(self.event_queue.qsize()):
-                self.event_queue.get_nowait()
-                self.event_queue.task_done()
-            if self.connected and self._ws.open:
-                self.connected = False
-                await self._ws.close()
-                await self.close_browser()
-                try:
-                    self._recv_task.cancel()
-                    self._handle_event_task.cancel()
-                except:
-                    pass
-            await self.service.stop()
-            await self.session.close()            
-        except:
-            pass
+        if self.connected and self._ws.open:
+            await self._ws.close()
+            self._recv_task.cancel()
+            self._handle_event_task.cancel()
+            self.connected = False
+        await self.service.stop()
+        await self.session.close()
 
     def __str__(self):
         return f'<Browser {self.dev_url}>'
