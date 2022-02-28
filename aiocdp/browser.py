@@ -129,10 +129,8 @@ class Browser:
         self._ws = await websockets.connect(self._websocket_url, loop=self.loop, ping_interval=None)
         if self._ws.open:
             self.connected = True
-            self._recv_task = asyncio.create_task(self._recv_loop())
-            self._handle_event_task = asyncio.create_task(self._handle_event_loop())
-            await self._recv_task
-            await self._handle_event_task
+            self._recv_task = asyncio.ensure_future(self._recv_loop(), loop=self.loop)
+            self._handle_event_task = asyncio.ensure_future(self._handle_event_loop(), loop=self.loop)
 
     async def stop(self):
         if self.stopped:
