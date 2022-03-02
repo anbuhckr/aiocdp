@@ -50,7 +50,7 @@ class Browser(object):
             while not self.stopped:
                 try:
                     return await asyncio.wait_for(queue.get(), 1)
-                except asyncio.TimeoutError:
+                except (asyncio.TimeoutError, asyncio.QueueEmpty):
                     continue
             raise Exception(f"User abort, call stop() when calling {message['method']}")
         finally:
@@ -74,14 +74,15 @@ class Browser(object):
     async def _handle_event_loop(self):
         while not self.stopped:
             try:
-                event = await self.event_queue.get()
-            except asyncio.QueueEmpty:
+                event = await asyncio.wait_for(self.event_queue.get(), 1)
+            except (asyncio.TimeoutError, asyncio.QueueEmpty):
                 continue
             if event['method'] in self.event_handlers:
                 try:
                     await self.event_handlers[event['method']](**event['params'])
                 except Exception as e:
                     print(f"callback {event['method']} exception")
+            self.event_queue.task_done()
 
     async def send(self, _method, *args, **kwargs):
         if not self.started:
