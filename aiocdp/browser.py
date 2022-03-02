@@ -16,7 +16,7 @@ else:
 
 __all__ = ["Browser"]
 
-class Browser:
+class Browser(object):
 
     def __init__(self, opts=[]):
         self.service = Service(opts)
@@ -72,13 +72,15 @@ class Browser:
                 warnings.warn(f"unknown message: {message}")
 
     async def _handle_event_loop(self):
-        while not self.stopped:
+        while not self.stopped or not self.event_queue.empty():
             event = await self.event_queue.get()
-            if event['method'] in self.event_handlers:
-                try:
+            try:
+                if event['method'] in self.event_handlers:
                     await self.event_handlers[event['method']](**event['params'])
-                except Exception as e:
-                    print(f"callback {event['method']} exception")
+            except Exception as e:
+                print(f"callback {event['method']} exception")
+            finally:
+                self.event_queue.task_done()
 
     async def send(self, _method, *args, **kwargs):
         if not self.started:
@@ -123,9 +125,6 @@ class Browser:
             raise Exception("Browser is not running")
         self.started = False
         self.stopped = True
-        for _ in range(self.event_queue.qsize()):
-            self.event_queue.get_nowait()
-            self.event_queue.task_done()
         if self.connected and self._ws.open:
             await self._ws.close()
             self._recv_task.cancel()
