@@ -13,38 +13,37 @@ else:
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-DEFAULT_ARGS = [
-    'about:blank',
-    '--disable-background-networking',
-    '--disable-background-timer-throttling',
-    '--disable-breakpad',
-    '--disable-browser-side-navigation',
-    '--disable-client-side-phishing-detection',
-    '--disable-default-apps',
-    '--disable-infobars',
-    '--disable-dev-shm-usage',
-    '--disable-extensions',
-    '--disable-features=site-per-process',
-    '--disable-hang-monitor',
-    '--disable-popup-blocking',
-    '--disable-prompt-on-repost',
-    '--disable-sync',
-    '--disable-translate',
-    '--metrics-recording-only',
-    '--no-first-run',
-    '--safebrowsing-disable-auto-update',
-    '--password-store=basic',
-    '--use-mock-keychain',
-    '--ignore-ssl-errors',
-    '--ignore-certificate-errors',
-]
-
 class Service(object):
+
     def __init__(self, opts=[]):
         self.tmpdir = TemporaryDirectory()
         self.path = None
         self.port = None
-        self.service_args = DEFAULT_ARGS
+        self.service_args = [
+            'about:blank',
+            '--disable-background-networking',
+            '--disable-background-timer-throttling',
+            '--disable-breakpad',
+            '--disable-browser-side-navigation',
+            '--disable-client-side-phishing-detection',
+            '--disable-default-apps',
+            '--disable-infobars',
+            '--disable-dev-shm-usage',
+            '--disable-extensions',
+            '--disable-features=site-per-process',
+            '--disable-hang-monitor',
+            '--disable-popup-blocking',
+            '--disable-prompt-on-repost',
+            '--disable-sync',
+            '--disable-translate',
+            '--metrics-recording-only',
+            '--no-first-run',
+            '--safebrowsing-disable-auto-update',
+            '--password-store=basic',
+            '--use-mock-keychain',
+            '--ignore-ssl-errors',
+            '--ignore-certificate-errors',
+        ]
         self.service_args += opts
         self.service_args += [f'--user-data-dir={self.tmpdir.name}']
         self.url = None
