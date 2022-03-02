@@ -72,15 +72,16 @@ class Browser(object):
                 warnings.warn(f"unknown message: {message}")
 
     async def _handle_event_loop(self):
-        while not self.stopped or not self.event_queue.empty():
-            event = await self.event_queue.get()
+        while not self.stopped:
             try:
-                if event['method'] in self.event_handlers:
+                event = await self.event_queue.get()
+            except asyncio.QueueEmpty:
+                continue
+            if event['method'] in self.event_handlers:
+                try:
                     await self.event_handlers[event['method']](**event['params'])
-            except Exception as e:
-                print(f"callback {event['method']} exception")
-            finally:
-                self.event_queue.task_done()
+                except Exception as e:
+                    print(f"callback {event['method']} exception")
 
     async def send(self, _method, *args, **kwargs):
         if not self.started:
@@ -125,10 +126,14 @@ class Browser(object):
             raise Exception("Browser is not running")
         self.started = False
         self.stopped = True
-        if self.connected and self._ws.open:
+        if self._ws.open:
             await self._ws.close()
+        if self.connected:
             self._recv_task.cancel()
             self._handle_event_task.cancel()
+            for _ in range(self.event_queue.qsize()):
+                self.event_queue.put_nowait()
+                self.event_queue.task_done()
             self.connected = False
         await self.service.stop()
         await self.session.close()
