@@ -52,7 +52,7 @@ async def main():
     browser = Browser(opts=options)
 
     # register callback if you want
-    browser.on('Network.requestWillBeSent', request_will_be_sent)
+    browser.on('main', 'Network.requestWillBeSent', request_will_be_sent)
     
     # start browser with custom method
     try:
