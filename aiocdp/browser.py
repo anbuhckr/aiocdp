@@ -87,14 +87,17 @@ class Browser(object):
                     print(f"callback {event['method']} exception")
             self.event_queue.task_done()
 
-    async def send(self, _method, *args, **kwargs):
+    async def send(self, session, _method, *args, **kwargs):
         if not self.started:
             raise Exception("Cannot call method before it is started")
         if args:
             raise Exception("the params should be key=value format")
         if self.stopped:
             raise Exception("browser has been stopped")
-        result = await self.ws_send({"method": _method, "params": kwargs})
+        if session:
+            result = await self.ws_send({"sessionId": session, "method": _method, "params": kwargs})
+        else:
+            result = await self.ws_send({"method": _method, "params": kwargs})
         if 'result' not in result and 'error' in result:
             warnings.warn(f"{_method} error: {result['error']['message']}")
             raise Exception(f"calling method: {_method} error: {result['error']['message']}")
