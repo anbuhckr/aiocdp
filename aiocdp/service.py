@@ -32,7 +32,6 @@ class Service(object):
             '--disable-extensions',
             '--disable-features=IsolateOrigins,site-per-proces',
             '--disable-hang-monitor',
-            '--disable-popup-blocking',
             '--disable-prompt-on-repost',
             '--disable-sync',
             '--disable-translate',
