@@ -77,14 +77,16 @@ class Browser(object):
                 event = await asyncio.wait_for(self.event_queue.get(), 1)
             except (asyncio.TimeoutError, asyncio.QueueEmpty):
                 continue
-            if event['method'] in self.event_handlers:
+            if 'sessionId' in event and f"{event['sessionId']}.{event['method']}" in self.event_handlers:
                 try:
-                    if event['sessionId'] in self.event_handlers:
-                        await self.event_handlers[event['sessionId']+'.'+event['method']](**event['params'])
-                    else:
-                        await self.event_handlers['main.'+event['method']](**event['params'])
-                except Exception as e:
-                    print(f"callback {event['method']} exception")
+                    await self.event_handlers[f"{event['sessionId']}.{event['method']}"](**event['params'])
+                except:
+                    print(f"callback {event['sessionId']}.{event['method']} exception")
+            elif f"main.{event['method']}" in self.event_handlers:
+                try:
+                    await self.event_handlers[f"main.{event['method']}"](**event['params'])
+                except:
+                    print(f"callback main.{event['method']} exception")
             self.event_queue.task_done()
 
     async def send(self, session, _method, *args, **kwargs):
